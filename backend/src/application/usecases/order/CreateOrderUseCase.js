@@ -1,3 +1,5 @@
+const NodemailerAdapter = require('../../../infrastructure/adapters/NodemailerAdapter');
+
 'use strict';
 
 const { OrderService } = require('../../../domain/services/OrderService');
@@ -33,9 +35,31 @@ class CreateOrderUseCase {
     // Regla de negocio (comprobación de stock + cálculo de total) vive en el dominio.
     const order = OrderService.buildOrderFromCart(request, productsById);
 
-    // Persistencia: guardar el pedido y descontar stock en una sola transacción
-    // (ver adaptador PostgresOrderRepository -> se ejecuta dentro de BEGIN/COMMIT).
+    // Persistencia
     const saved = await this.orderRepository.save(order, { decrementStock: true });
+
+    // === ENVÍO DE NOTIFICACIONES POR CORREO (Mailtrap) ===
+    const emailAdapter = new NodemailerAdapter();
+
+    // 1. Enviar correo al cliente
+    try {
+      await emailAdapter.sendOrderConfirmationEmail(saved, user.email);
+      console.log('Correo de cliente enviado a Mailtrap correctamente');
+    } catch (error) {
+      console.error('Aviso correo cliente:', error.message);
+    }
+
+    // Pausa de 5 segundos enteros para reiniciar la ventana de frecuencia de Mailtrap
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    // 2. Enviar correo al administrador
+    try {
+      await emailAdapter.sendAdminOrderNotification(saved, process.env.ADMIN_EMAIL);
+      console.log('Correo de admin enviado a Mailtrap correctamente');
+    } catch (error) {
+      console.error('Aviso correo admin:', error.message);
+    }
+
     return saved;
   }
 }
