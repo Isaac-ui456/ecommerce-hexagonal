@@ -6,6 +6,7 @@ const { pool } = require('./db');
 const { PostgresUserRepository } = require('../adapters/out/persistence/postgres/PostgresUserRepository');
 const { PostgresProductRepository } = require('../adapters/out/persistence/postgres/PostgresProductRepository');
 const { PostgresOrderRepository } = require('../adapters/out/persistence/postgres/PostgresOrderRepository');
+const PostgresAnalyticsRepository = require('../adapters/out/persistence/postgres/PostgresAnalyticsRepository');
 const { BcryptPasswordHasher } = require('../adapters/out/security/BcryptPasswordHasher');
 const { JwtTokenService } = require('../adapters/out/security/JwtTokenService');
 
@@ -31,21 +32,23 @@ const { ListOrdersUseCase } = require('../../application/usecases/order/ListOrde
 const { UpdateOrderStatusUseCase } = require('../../application/usecases/order/UpdateOrderStatusUseCase');
 const { DeleteOrderUseCase } = require('../../application/usecases/order/DeleteOrderUseCase');
 
+// Casos de uso - Analítica
+const GetAnalyticsDashboardUseCase = require('../../application/usecases/analytics/GetAnalyticsDashboardUseCase');
+
 // Adaptadores de entrada
 const { UserController } = require('../adapters/in/http/controllers/userController');
 const { ProductController } = require('../adapters/in/http/controllers/productController');
 const { OrderController } = require('../adapters/in/http/controllers/orderController');
+const AnalyticsController = require('../adapters/in/http/controllers/analyticsController');
 
 /**
  * Contenedor de inyección de dependencias (composition root).
- * Es el único lugar donde se "cablean" adaptadores concretos con
- * casos de uso. Si mañana se cambia PostgreSQL por MongoDB, o bcrypt
- * por argon2, solo se toca este archivo.
  */
 function buildContainer() {
   const userRepository = new PostgresUserRepository(pool);
   const productRepository = new PostgresProductRepository(pool);
   const orderRepository = new PostgresOrderRepository(pool, productRepository);
+  const analyticsRepository = new PostgresAnalyticsRepository();
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = new JwtTokenService(process.env.JWT_SECRET, process.env.JWT_EXPIRES_IN);
 
@@ -74,7 +77,11 @@ function buildContainer() {
     deleteOrderUseCase: new DeleteOrderUseCase(orderRepository),
   });
 
-  return { userController, productController, orderController, tokenService };
+  const analyticsController = new AnalyticsController(
+    new GetAnalyticsDashboardUseCase(analyticsRepository)
+  );
+
+  return { userController, productController, orderController, analyticsController, tokenService };
 }
 
 module.exports = { buildContainer };

@@ -6,6 +6,7 @@ import LoginPage from './modules/auth/pages/LoginPage';
 import RegisterPage from './modules/auth/pages/RegisterPage';
 import CatalogPage from './modules/catalog/pages/CatalogPage';
 import OrdersPage from './modules/orders/pages/OrdersPage';
+import { AnalyticsPage } from './modules/analytics/pages/AnalyticsPage';
 
 export default function App() {
   return (
@@ -17,6 +18,14 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/catalog" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+            <Route 
+              path="/analytics" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="*" element={<Navigate to="/catalog" replace />} />
           </Routes>
         </AppLayout>

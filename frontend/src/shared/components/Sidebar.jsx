@@ -18,6 +18,7 @@ export default function Sidebar() {
   const items = [
     { to: '/catalog', label: 'Catálogo' },
     ...(user ? [{ to: '/orders', label: 'Mis pedidos' }] : []),
+    ...(user?.role === 'admin' ? [{ to: '/analytics', label: '📊 Analíticas' }] : []),
   ];
 
   return (
